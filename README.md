@@ -1,8 +1,7 @@
 # TwirpRails
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/twirp_rails`. To experiment with that code, run `bin/console` for an interactive prompt.
-
-TODO: Delete this and the text above, and describe your gem
+TwirpRails used to easy embed of [twirp-ruby gem](https://github.com/twitchtv/twirp-ruby) to rails stack and
+automate code generation from ```.proto``` files.
 
 ## Installation
 
@@ -12,17 +11,67 @@ Add this line to your application's Gemfile:
 gem 'twirp_rails'
 ```
 
-And then execute:
-
-    $ bundle
-
-Or install it yourself as:
-
-    $ gem install twirp_rails
+See the [twirp-ruby code generation documentation](https://github.com/twitchtv/twirp-ruby/wiki/Code-Generation) 
+for install required protoc and twirp-ruby plugin.
 
 ## Usage
 
-TODO: Write usage instructions here
+### Generator
+
+Create proto file ```app/protos/people.proto```:
+```proto
+syntax = "proto3";
+
+service People {
+    rpc getName(GetNameRequest) returns (GetNameResponse);
+}
+
+message GetNameRequest {
+    string uid = 1;
+}
+
+message GetNameResponse {
+    string name = 1;
+}
+```
+
+and run
+
+```sh
+rails g twirp people
+```
+
+This command generates ```lib/twirp/people_pb.rb```, ```lib/twirp/people_twirp.rb``` and ```app/rpc/people_handler.rb``` and adds route.
+```ruby
+# app/rpc/people_handler.rb
+
+class PeopleHandler
+
+  def get_name(req, _env)
+    GetNameResponse.new
+  end
+end
+```
+
+### Call RPC
+
+Modify app/rpc/people_handler.rb:
+```ruby
+  def get_name(req, _env)
+    GetNameResponse.new name: "Name of #{req.uid}"
+  end
+```
+
+Run rails server
+```sh
+rails s
+```
+
+And test from rails console.
+```ruby
+PeopleClient.new('http://localhost:3000').get_name(GetNameRequest.new uid: '1').data.name
+=> "Name of 1"
+```
 
 ## Development
 
@@ -32,7 +81,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/twirp_rails. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
+Bug reports and pull requests are welcome on GitHub at https://github.com/severgroup-tt/twirp_rails. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
 
 ## License
 
