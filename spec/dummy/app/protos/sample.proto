@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+service Sample {
+    rpc sample(SampleRequest) returns (SampleResponse);
+}
+
+message SampleRequest {
+    string uid = 1;
+}
+
+message SampleResponse {
+    string name = 1;
+}
