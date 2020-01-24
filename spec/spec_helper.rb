@@ -1,6 +1,5 @@
 require 'bundler/setup'
 require 'twirp_rails'
-require 'dummy/config/environment'
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure

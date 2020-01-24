@@ -8,8 +8,9 @@ class TwirpGenerator < Rails::Generators::NamedBase
 
   def check_requirements
     in_root do
+      puts `pwd`
       unless File.exists?(proto_file_name)
-        raise "#{proto_file_name} not found"
+        raise "#{proto_file_name} not found #{`pwd`} #{`ls`}"
       end
     end
 
@@ -32,7 +33,7 @@ class TwirpGenerator < Rails::Generators::NamedBase
     end
   end
 
-  PROTO_RPC_REGEXP = /\brpc\s+(\S+)\s*\(\s*(\S+)\s*\)\s*returns\s*\(\s*(\S+)\s*\)/.freeze
+  PROTO_RPC_REGEXP = /\brpc\s+(\S+)\s*\(\s*(\S+)\s*\)\s*returns\s*\(\s*(\S+)\s*\)/m.freeze
   def generate_handler
     calls = proto_content.scan(PROTO_RPC_REGEXP).map do |method, arg_type, result_type|
       <<-RUBY

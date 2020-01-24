@@ -7,4 +7,9 @@
 /spec/reports/
 /tmp/
 /.idea/
+
 .rspec_status
+
+/spec/dummy/tmp
+/spec/dummy/log
+
