@@ -1,0 +1,57 @@
+version: 2.1
+
+parameters:
+  project_name:
+    type: string
+    default: twirp_rails
+  ruby_image:
+    type: string
+    default: circleci/ruby:2.6.5
+
+commands:
+  gen_version:
+    steps:
+      - run:
+          name: Set project vars
+          command: |
+            echo "" > vars.sh
+            GEM_VERSION=$(ruby -r./lib/twirp_rails/version.rb -e "print TwirpRails::VERSION")
+            echo "export GEM_VERSION=$GEM_VERSION" >> vars.sh
+
+
+jobs:
+  test_app_code:
+    parameters:
+      cache_name:
+        type: string
+        default: << pipeline.parameters.project_name >>-cache-{{ checksum "<< pipeline.parameters.project_name >>.gemspec" }}
+    working_directory: ~/src
+    docker:
+      - image: << pipeline.parameters.ruby_image >>
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - restore_cache:
+          keys:
+            - << parameters.cache_name >>
+      - run:
+          name: Bundle install
+          command: bundle install --path ~/.bundler
+      - save_cache:
+          key: << parameters.cache_name >>
+          paths:
+            - ~/.bundler
+      - run:
+          name: Rspec
+          command: bundle exec rspec -f progress -f RspecJunitFormatter --out /tmp/test-results/rspec.xml
+
+workflows:
+  version: 2
+  app:
+    jobs:
+      - test_app_code:
+          filters:
+            tags:
+              only: /.*/
+
