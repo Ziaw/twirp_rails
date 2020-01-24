@@ -2,7 +2,7 @@ PATH
   remote: .
   specs:
     twirp_rails (0.1.0)
-      railties (>= 6.0)
+      railties (~> 6.0)
       twirp (~> 1)
 
 GEM
@@ -38,7 +38,7 @@ GEM
     generator_spec (0.9.4)
       activesupport (>= 3.0.0)
       railties (>= 3.0.0)
-    google-protobuf (3.11.2)
+    google-protobuf (3.11.2-universal-darwin)
     i18n (1.8.2)
       concurrent-ruby (~> 1.0)
     loofah (2.4.0)
@@ -103,8 +103,8 @@ PLATFORMS
 
 DEPENDENCIES
   bundler (~> 1.17)
-  generator_spec
-  pry
+  generator_spec (~> 0.9)
+  pry (~> 0.12)
   rake (~> 10.0)
   rspec (~> 3.0)
   rspec-rails (~> 3.0)
