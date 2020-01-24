@@ -13,3 +13,5 @@
 /spec/dummy/tmp
 /spec/dummy/log
 
+twirp_rails-*.gem
+
