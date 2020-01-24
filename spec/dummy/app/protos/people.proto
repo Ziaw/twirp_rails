@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+service People {
+    rpc getName(GetNameRequest) returns (GetNameResponse);
+}
+
+message GetNameRequest {
+    string uid = 1;
+}
+
+message GetNameResponse {
+    string name = 1;
+}

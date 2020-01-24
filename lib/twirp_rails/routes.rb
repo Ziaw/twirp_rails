@@ -1,5 +1,7 @@
+require 'action_dispatch'
+
 module TwirpRails
-  class Routes # :nodoc:
+  module Routes # :nodoc:
     module Helper
       def mount_twirp(name, handler: nil)
         case name

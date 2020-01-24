@@ -1,0 +1,11 @@
+Description:
+    Generate twirp and handler files from proto file.
+
+Example:
+    rails generate twirp org
+
+    This will create:
+        lib/twirp
+        lib/twirp/org_pb.rb
+        lib/twirp/org_twirp.rb
+        app/rpc/org_handler.rb
