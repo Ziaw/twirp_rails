@@ -1,6 +1,6 @@
 # TwirpRails
 
-TwirpRails helps to use [twirp-ruby gem](https://github.com/twitchtv/twirp-ruby) with rails and
+TwirpRails helps to use [twirp-ruby gem](https://github.com/twitchtv/twirp-ruby) with rails and to
 automate code generation from ```.proto``` files.
 
 ## Installation
@@ -12,13 +12,13 @@ gem 'twirp_rails'
 ```
 
 See the [twirp-ruby code generation documentation](https://github.com/twitchtv/twirp-ruby/wiki/Code-Generation) 
-for install required protoc and twirp-ruby plugin.
+to install required protoc and twirp-ruby plugin.
 
 ## Usage
 
 ### Generator
 
-Create proto file ```app/protos/people.proto```:
+Create a proto file ```app/protos/people.proto```:
 ```proto
 syntax = "proto3";
 
@@ -41,7 +41,7 @@ and run
 rails g twirp people
 ```
 
-This command generates ```lib/twirp/people_pb.rb```, ```lib/twirp/people_twirp.rb``` and ```app/rpc/people_handler.rb``` and adds route.
+This command will generate ```lib/twirp/people_pb.rb```, ```lib/twirp/people_twirp.rb``` and ```app/rpc/people_handler.rb``` and add the route.
 ```ruby
 # app/rpc/people_handler.rb
 
@@ -55,7 +55,7 @@ end
 
 ### Call RPC
 
-Modify app/rpc/people_handler.rb:
+Modify ```app/rpc/people_handler.rb```:
 ```ruby
   def get_name(req, _env)
     GetNameResponse.new name: "Name of #{req.uid}"
@@ -67,7 +67,7 @@ Run rails server
 rails s
 ```
 
-And test from rails console.
+And check it from rails console.
 ```ruby
 PeopleClient.new('http://localhost:3000').get_name(GetNameRequest.new uid: '1').data.name
 => "Name of 1"
