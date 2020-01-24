@@ -1,6 +1,6 @@
 # TwirpRails
 
-TwirpRails used to easy embed of [twirp-ruby gem](https://github.com/twitchtv/twirp-ruby) to rails stack and
+TwirpRails helps to use [twirp-ruby gem](https://github.com/twitchtv/twirp-ruby) with rails and
 automate code generation from ```.proto``` files.
 
 ## Installation
