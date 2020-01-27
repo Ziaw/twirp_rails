@@ -25,7 +25,6 @@ class TwirpGenerator < Rails::Generators::NamedBase
     end
   end
 
-  describe 'Generate twirp files'
   def generate_twirp_files
     in_root do
       cmd = protoc_cmd
