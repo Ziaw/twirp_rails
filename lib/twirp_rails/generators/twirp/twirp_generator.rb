@@ -26,10 +26,12 @@ class TwirpGenerator < Rails::Generators::NamedBase
   end
 
   def generate_twirp_files
-    cmd = protoc_cmd
-
     in_root do
+      cmd = protoc_cmd
+
       `#{cmd}`
+
+      raise "protoc failure: #{cmd}" unless $?.success?
     end
   end
 
@@ -73,7 +75,8 @@ class TwirpGenerator < Rails::Generators::NamedBase
     FileUtils.mkdir_p 'lib/twirp'
     flags = "--proto_path=app/protos --ruby_out=lib/twirp --twirp_ruby_out=lib/twirp --plugin=#{PLUGIN_PATH}"
 
-    "#{PROTOC_PATH} #{flags} app/protos/#{file_name}.proto"
+    proto_files = Dir.glob 'app/protos/*.proto'
+    "#{PROTOC_PATH} #{flags} #{proto_files.join(' ')}"
   end
 
   def proto_content

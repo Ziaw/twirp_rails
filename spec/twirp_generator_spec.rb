@@ -8,6 +8,8 @@ RSpec.describe TwirpGenerator, type: :generator do
   before(:all) do
     prepare_destination
     FileUtils.cp_r File.expand_path('dummy', __dir__), File.expand_path('../tmp', __dir__)
+    FileUtils.rm_r File.expand_path('../tmp/dummy/lib/twirp', __dir__), force: true
+    FileUtils.mkdir_p File.expand_path('../tmp/dummy/lib/twirp', __dir__)
     run_generator
   end
 
@@ -19,12 +21,12 @@ RSpec.describe TwirpGenerator, type: :generator do
     end
   end
 
-  it 'generates pb' do
-    assert_file 'lib/twirp/sample_pb.rb', /add_file\("sample\.proto",\ :syntax\ =>\ :proto3\)/
-  end
-
-  it 'generates twirp' do
+  it 'generates files from all proto files' do
     assert_file 'lib/twirp/sample_twirp.rb', /class SampleService/
+    assert_file 'lib/twirp/sample_pb.rb', /add_file\("sample\.proto",\ :syntax\ =>\ :proto3\)/
+
+    assert_file 'lib/twirp/people_twirp.rb', /class PeopleService/
+    assert_file 'lib/twirp/people_pb.rb', /add_file\("people\.proto",\ :syntax\ =>\ :proto3\)/
   end
 
   it 'generates route' do
