@@ -2,14 +2,9 @@ syntax = "proto3";
 import 'shared.proto';
 
 service Sample {
-    rpc sample(SampleRequest) returns (SampleResponse);
+    rpc sample(SampleRequest) returns (shared.Status);
 }
 
 message SampleRequest {
     string uid = 1;
-}
-
-message SampleResponse {
-    string name = 1;
-    shared.Status status = 2;
 }
