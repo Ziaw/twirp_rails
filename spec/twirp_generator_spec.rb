@@ -16,7 +16,7 @@ RSpec.describe TwirpGenerator, type: :generator do
   it 'creates a handler' do
     assert_file 'app/rpc/sample_handler.rb', /class SampleHandler/ do |handler|
       assert_instance_method :sample, handler do |method|
-        assert_match(/SampleResponse\.new/, method)
+        assert_match(/Shared::Status\.new/, method)
       end
     end
   end

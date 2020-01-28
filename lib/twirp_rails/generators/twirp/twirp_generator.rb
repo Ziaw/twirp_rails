@@ -40,8 +40,10 @@ class TwirpGenerator < Rails::Generators::NamedBase
   end
 
   PROTO_RPC_REGEXP = /\brpc\s+(\S+)\s*\(\s*(\S+)\s*\)\s*returns\s*\(\s*(\S+)\s*\)/m.freeze
+
   def generate_handler
     methods = proto_content.scan(PROTO_RPC_REGEXP).map do |method, arg_type, result_type|
+      result_type = proto_type_to_ruby(result_type)
       <<-RUBY
   def #{method.underscore}(req, _env)
     #{result_type}.new
@@ -66,6 +68,10 @@ class TwirpGenerator < Rails::Generators::NamedBase
   end
 
   private
+
+  def proto_type_to_ruby(result_type)
+    result_type.split('.').map(&:camelize).join('::')
+  end
 
   def from_rails_root(&block)
     old_dir = Dir.pwd
