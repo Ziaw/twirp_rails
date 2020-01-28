@@ -16,17 +16,23 @@ RSpec.describe TwirpGenerator, type: :generator do
   it 'creates a handler' do
     assert_file 'app/rpc/sample_handler.rb', /class SampleHandler/ do |handler|
       assert_instance_method :sample, handler do |method|
-        assert_match(/SampleResponse\.new/, method)
+        assert_match(/Shared::Status\.new/, method)
       end
     end
   end
 
   it 'generates files from all proto files' do
-    assert_file 'lib/twirp/sample_twirp.rb', /class SampleService/
+    assert_file 'lib/twirp/sample_twirp.rb' do |sample|
+      assert_match /class SampleService/, sample
+      assert_match /rpc\ :sample,\ SampleRequest,\ Shared::Status,\ :ruby_method\ =>\ :sample/, sample
+    end
     assert_file 'lib/twirp/sample_pb.rb', /add_file\("sample\.proto",\ :syntax\ =>\ :proto3\)/
 
     assert_file 'lib/twirp/people_twirp.rb', /class PeopleService/
     assert_file 'lib/twirp/people_pb.rb', /add_file\("people\.proto",\ :syntax\ =>\ :proto3\)/
+
+    assert_file 'lib/twirp/shared_twirp.rb', /module Shared/
+    assert_file 'lib/twirp/shared_pb.rb', /module Shared\s+Status =/m
   end
 
   it 'generates route' do

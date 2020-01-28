@@ -27,17 +27,23 @@ class TwirpGenerator < Rails::Generators::NamedBase
 
   def generate_twirp_files
     in_root do
-      cmd = protoc_cmd
+      proto_files = Dir.glob 'app/protos/**/*.proto'
 
-      `#{cmd}`
+      proto_files.each do |file|
+        cmd = protoc_cmd(file)
 
-      raise "protoc failure: #{cmd}" unless $?.success?
+        `#{cmd}`
+
+        raise "protoc failure: #{cmd}" unless $?.success?
+      end
     end
   end
 
   PROTO_RPC_REGEXP = /\brpc\s+(\S+)\s*\(\s*(\S+)\s*\)\s*returns\s*\(\s*(\S+)\s*\)/m.freeze
+
   def generate_handler
-    calls = proto_content.scan(PROTO_RPC_REGEXP).map do |method, arg_type, result_type|
+    methods = proto_content.scan(PROTO_RPC_REGEXP).map do |method, arg_type, result_type|
+      result_type = proto_type_to_ruby(result_type)
       <<-RUBY
   def #{method.underscore}(req, _env)
     #{result_type}.new
@@ -45,11 +51,11 @@ class TwirpGenerator < Rails::Generators::NamedBase
       RUBY
     end.join("\n")
 
-    # Пока считаем, что имя сервиса совпадает с именем файла,
+    # Let us assume that the service name is the same file name
     create_file "app/rpc/#{file_name}_handler.rb", <<~RUBY
       class #{class_name}Handler
 
-      #{calls}end
+      #{methods}end
     RUBY
   end
 
@@ -63,6 +69,10 @@ class TwirpGenerator < Rails::Generators::NamedBase
 
   private
 
+  def proto_type_to_ruby(result_type)
+    result_type.split('.').map(&:camelize).join('::')
+  end
+
   def from_rails_root(&block)
     old_dir = Dir.pwd
     Dir.chdir Rails.root
@@ -71,12 +81,11 @@ class TwirpGenerator < Rails::Generators::NamedBase
     Dir.chdir old_dir
   end
 
-  def protoc_cmd
+  def protoc_cmd(files)
     FileUtils.mkdir_p 'lib/twirp'
     flags = "--proto_path=app/protos --ruby_out=lib/twirp --twirp_ruby_out=lib/twirp --plugin=#{PLUGIN_PATH}"
 
-    proto_files = Dir.glob 'app/protos/*.proto'
-    "#{PROTOC_PATH} #{flags} #{proto_files.join(' ')}"
+    "#{PROTOC_PATH} #{flags} #{files}"
   end
 
   def proto_content
