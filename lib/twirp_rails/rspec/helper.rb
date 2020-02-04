@@ -3,7 +3,7 @@ module TwirpRails
     module Helper
       extend ActiveSupport::Concern
 
-      module ClassMethods
+      class_methods do
         # places to subject service method returned value converted to_h
         # @param [Boolean] to_h - default true, set to false to use pure result
         # @param [Proc] block - should return array with method name and arguments
@@ -12,8 +12,21 @@ module TwirpRails
         #   it { should match(id: 1)}
         def rpc(to_h: true, &block)
           let :rpc_args, &block
+
           subject do
-            result = service.call_rpc(*rpc_args)
+            method, *args = rpc_args
+
+            unless service.class.rpcs[method.to_s]
+              camelized_method = method.to_s.camelize
+
+              if service.class.rpcs[camelized_method]
+                method = camelized_method
+              else
+                raise "Methods #{method}/#{camelized_method} is not found in the service #{service.class}"
+              end
+            end
+
+            result = service.call_rpc(method, *args)
             to_h ? result.to_h : result
           end
         end
