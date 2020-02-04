@@ -22,6 +22,9 @@ class TwirpGenerator < Rails::Generators::NamedBase
         or set TWIRP_PLUGIN_PATH environment variable to right location.
       TEXT
     end
+
+    raise "protoc-gen-twirp_ruby doesn't installed" unless system('go list github.com/twitchtv/twirp-ruby/protoc-gen-twirp_ruby')
+    raise "protoc-gen-twirp_swagger doesn't installed" unless system('go list github.com/elliots/protoc-gen-twirp_swagger')
   end
 
   def generate_twirp_files
@@ -74,8 +77,8 @@ class TwirpGenerator < Rails::Generators::NamedBase
 
   def protoc_cmd(files)
     FileUtils.mkdir_p 'lib/twirp'
-    flags = "--proto_path=app/protos --ruby_out=lib/twirp --twirp_ruby_out=lib/twirp --plugin=#{PLUGIN_PATH}"
-
+    FileUtils.mkdir_p 'public/swagger'
+    flags = "--twirp_swagger_out=public/swagger --proto_path=app/protos --ruby_out=lib/twirp --twirp_ruby_out=lib/twirp --plugin=#{PLUGIN_PATH}"
     "#{PROTOC_PATH} #{flags} #{files}"
   end
 
