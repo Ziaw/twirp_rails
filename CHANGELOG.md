@@ -4,6 +4,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.1.5 - 2020-02-04
+
+### Added
+- rspec ```rpc``` helper try to camelize tested method name if it not exists 
+
+## 0.1.4 - 2020-02-03
+
+### Added
+- ```to_twirp``` and ```twirp_message``` methods to easy convert active record models to protobuf DTOs
+- rspec helper to test twirp handlers with ```rpc``` helper
+```ruby
+config.include TwirpRails::RSpec::Helper, type: :rpc, file_path: %r{spec/rpc}
+# ...
+
+describe TeamsHandler do
+  let!(:team) { create :team }
+
+  context '.get' do
+    rpc { [:get, id: team.id] }
+
+    it { should match(team: team.to_twirp.symbolize_keys) }
+  end
+end
+``` 
+
 ## 0.1.3 - 2020-01-28
 
 ### Added

@@ -8,7 +8,6 @@ class TwirpGenerator < Rails::Generators::NamedBase
 
   def check_requirements
     in_root do
-      puts `pwd`
       unless File.exists?(proto_file_name)
         raise "#{proto_file_name} not found #{`pwd`} #{`ls`}"
       end
@@ -64,21 +63,13 @@ class TwirpGenerator < Rails::Generators::NamedBase
   end
 
   def generate_rspec_files
-    puts 'RSpec TODO'
+    # TODO
   end
 
   private
 
   def proto_type_to_ruby(result_type)
     result_type.split('.').map(&:camelize).join('::')
-  end
-
-  def from_rails_root(&block)
-    old_dir = Dir.pwd
-    Dir.chdir Rails.root
-    yield
-  ensure
-    Dir.chdir old_dir
   end
 
   def protoc_cmd(files)
