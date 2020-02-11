@@ -35,6 +35,19 @@ RSpec.describe TwirpGenerator, type: :generator do
     assert_file 'lib/twirp/shared_pb.rb', /module Shared\s+Status =/m
   end
 
+  it 'generates rspec file' do
+    assert_file 'spec/rpc/sample_handler_spec.rb' do |sample|
+      assert_match /describe SampleHandler/, sample
+      assert_match /context '#sample' do/, sample
+    end
+
+    assert_file 'spec/rails_helper.rb', %r{require 'twirp/rails/rspec/helper'}
+  end
+
+  it 'generate swagger file' do
+    assert_file 'public/swagger/sample.swagger.json', /sample/
+  end
+
   it 'generates route' do
     assert_file 'config/routes.rb', /mount_twirp :sample/
   end
