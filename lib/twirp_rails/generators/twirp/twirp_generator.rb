@@ -3,19 +3,24 @@ require 'rails/generators'
 class TwirpGenerator < Rails::Generators::NamedBase
   source_root File.expand_path('templates', __dir__)
 
-  PLUGIN_PATH = ENV.fetch('TWIRP_PLUGIN_PATH') { File.expand_path('~/go/bin/protoc-gen-twirp_ruby') }
+  class_option :skip_swagger, type: :boolean, default: false
+  class_option :swagger_out, type: :string, default: 'public/swagger'
+
+  GO_BIN_PATH = ENV.fetch('GOPATH') { File.expand_path('~/go/bin') }
+  TWIRP_PLUGIN_PATH = ENV.fetch('TWIRP_PLUGIN_PATH') { File.join(GO_BIN_PATH, 'protoc-gen-twirp_ruby') }
+  SWAGGER_PLUGIN_PATH = ENV.fetch('SWAGGER_PLUGIN_PATH') { File.join(GO_BIN_PATH, 'protoc-gen-twirp_swagger') }
   PROTOC_PATH = `which protoc`.chomp
 
   def check_requirements
     in_root do
-      unless File.exists?(proto_file_name)
+      unless File.exist?(proto_file_name)
         raise "#{proto_file_name} not found #{`pwd`} #{`ls`}"
       end
     end
 
-    raise 'protoc not found - install protobuf (brew/apt/yum install protobuf)' unless File.exists?(PROTOC_PATH)
+    raise 'protoc not found - install protobuf (brew/apt/yum install protobuf)' unless File.exist?(PROTOC_PATH)
 
-    unless File.exists?(PLUGIN_PATH)
+    unless File.exist?(TWIRP_PLUGIN_PATH)
       raise <<~TEXT
         protoc-gen-twirp_ruby not found - install go (brew install go)
         and run "go get github.com/twitchtv/twirp-ruby/protoc-gen-twirp_ruby
@@ -23,8 +28,13 @@ class TwirpGenerator < Rails::Generators::NamedBase
       TEXT
     end
 
-    raise "protoc-gen-twirp_ruby doesn't installed" unless system('go list github.com/twitchtv/twirp-ruby/protoc-gen-twirp_ruby')
-    raise "protoc-gen-twirp_swagger doesn't installed" unless system('go list github.com/elliots/protoc-gen-twirp_swagger')
+    if gen_swagger? && !File.exist?(SWAGGER_PLUGIN_PATH)
+      raise <<~TEXT
+        protoc-gen-twirp_swagger not found - install go (brew install go)
+        and run "go get github.com/elliots/protoc-gen-twirp_swagger
+        or set SWAGGER_PLUGIN_PATH environment variable to right location.
+      TEXT
+    end
   end
 
   def generate_twirp_files
@@ -32,7 +42,9 @@ class TwirpGenerator < Rails::Generators::NamedBase
       proto_files = Dir.glob 'app/protos/**/*.proto'
 
       proto_files.each do |file|
-        cmd = protoc_cmd(file)
+        gen_swagger = gen_swagger? && file =~ %r{/#{file_name}\.proto$}
+        pp [gen_swagger, file]
+        cmd = protoc_cmd(file, gen_swagger: gen_swagger)
 
         `#{cmd}`
 
@@ -46,10 +58,10 @@ class TwirpGenerator < Rails::Generators::NamedBase
   def generate_handler
     methods = proto_content.scan(PROTO_RPC_REGEXP).map do |method, arg_type, result_type|
       result_type = proto_type_to_ruby(result_type)
-      <<-RUBY
-  def #{method.underscore}(req, _env)
-    #{result_type}.new
-  end
+      optimize_indentation <<~RUBY, 2
+        def #{method.underscore}(req, _env)
+          #{result_type}.new
+        end
       RUBY
     end.join("\n")
 
@@ -66,7 +78,47 @@ class TwirpGenerator < Rails::Generators::NamedBase
   end
 
   def generate_rspec_files
-    # TODO
+    in_root do
+      return unless File.exist?('spec')
+
+      methods = proto_content.scan(PROTO_RPC_REGEXP).map do |method, arg_type, result_type|
+        result_type = proto_type_to_ruby(result_type)
+        optimize_indentation <<~RUBY, 2
+          context '##{method.underscore}' do
+            rpc { [:#{method.underscore}, 'arg'] }
+
+            it do
+              expect { #{result_type}.new(subject) }.to_not raise_exception
+              should match({})
+            end
+          end
+        RUBY
+      end.join("\n")
+
+      create_file "spec/rpc/#{file_name}_handler_spec.rb", <<~RUBY
+        require 'rails_helper'
+
+        describe #{class_name}Handler do
+
+        #{methods}end
+      RUBY
+    end
+  end
+
+  def inject_rspec_helper
+    in_root do
+      return unless File.exist?('spec/rails_helper.rb')
+
+      require_sentinel = %r{require 'rspec/rails'\s*\n}m
+      include_sentinel = /RSpec\.configure do |config|\s*\n/m
+
+      inject_into_file 'spec/rails_helper.rb',
+                       "require 'twirp/rails/rspec/helper'",
+                       after: require_sentinel, verbose: true, force: false
+      inject_into_file 'spec/rails_helper.rb',
+                       '  config.include TwirpRails::RSpec::Helper, type: :rpc, file_path: %r{spec/rpc}',
+                       after: include_sentinel, verbose: true, force: false
+    end
   end
 
   private
@@ -75,10 +127,20 @@ class TwirpGenerator < Rails::Generators::NamedBase
     result_type.split('.').map(&:camelize).join('::')
   end
 
-  def protoc_cmd(files)
+  def protoc_cmd(files, gen_swagger: gen_swagger?)
     FileUtils.mkdir_p 'lib/twirp'
-    FileUtils.mkdir_p 'public/swagger'
-    flags = "--twirp_swagger_out=public/swagger --proto_path=app/protos --ruby_out=lib/twirp --twirp_ruby_out=lib/twirp --plugin=#{PLUGIN_PATH}"
+
+    flags = '--proto_path=app/protos ' \
+            '--ruby_out=lib/twirp --twirp_ruby_out=lib/twirp ' \
+            "--plugin=#{TWIRP_PLUGIN_PATH}"
+
+    if gen_swagger
+      FileUtils.mkdir_p options[:swagger_out]
+
+      flags += " --plugin=#{SWAGGER_PLUGIN_PATH}" \
+               " --twirp_swagger_out=#{options[:swagger_out]}"
+    end
+
     "#{PROTOC_PATH} #{flags} #{files}"
   end
 
@@ -93,5 +155,9 @@ class TwirpGenerator < Rails::Generators::NamedBase
 
   def proto_file_name
     "app/protos/#{file_name}.proto"
+  end
+
+  def gen_swagger?
+    !options[:skip_swagger]
   end
 end

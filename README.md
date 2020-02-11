@@ -41,7 +41,8 @@ and run
 rails g twirp people
 ```
 
-This command will generate ```lib/twirp/people_pb.rb```, ```lib/twirp/people_twirp.rb``` and ```app/rpc/people_handler.rb``` and add the route.
+This command will add the route and generate ```lib/twirp/people_pb.rb```, ```lib/twirp/people_twirp.rb```,  
+```public/swagger/people.swagger.json```,  ```app/rpc/people_handler.rb``` and ```spec/rpc/people_handler_sprc.rb```.
 ```ruby
 # app/rpc/people_handler.rb
 
