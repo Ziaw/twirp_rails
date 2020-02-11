@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.1.7 - 2020-02-11
+
+### Changed
+- initial inject required rspec helper required code moved to the ```twirp:rspec``` generator.
+
 ## 0.1.6 - 2020-02-11
 
 ### Added
@@ -27,7 +32,7 @@ config.include TwirpRails::RSpec::Helper, type: :rpc, file_path: %r{spec/rpc}
 describe TeamsHandler do
   let!(:team) { create :team }
 
-  context '.get' do
+  context '#get' do
     rpc { [:get, id: team.id] }
 
     it { should match(team: team.to_twirp.symbolize_keys) }
