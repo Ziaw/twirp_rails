@@ -40,8 +40,6 @@ RSpec.describe TwirpGenerator, type: :generator do
       assert_match /describe SampleHandler/, sample
       assert_match /context '#sample' do/, sample
     end
-
-    assert_file 'spec/rails_helper.rb', %r{require 'twirp/rails/rspec/helper'}
   end
 
   it 'generate swagger file' do

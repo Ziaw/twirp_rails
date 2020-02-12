@@ -39,6 +39,7 @@ and run
 
 ```sh
 rails g twirp people
+rails g twirp:rspec # run only once, if you want to use rspec rpc helper
 ```
 
 This command will add the route and generate ```lib/twirp/people_pb.rb```, ```lib/twirp/people_twirp.rb```,  
@@ -59,7 +60,7 @@ end
 Modify ```app/rpc/people_handler.rb```:
 ```ruby
   def get_name(req, _env)
-    GetNameResponse.new name: "Name of #{req.uid}"
+    { name: "Name of #{req.uid}" }
   end
 ```
 
@@ -73,6 +74,32 @@ And check it from rails console.
 PeopleClient.new('http://localhost:3000').get_name(GetNameRequest.new uid: '1').data.name
 => "Name of 1"
 ```
+
+### Test your service with rspec
+
+If you use RSpec, twirp generator creates handler spec file with all service methods test templates. 
+
+```ruby
+describe TeamsHandler do
+
+  context '#get' do
+    rpc { [:get, id: team.id] }
+
+    it { should match(team: team.to_twirp) }
+  end
+end
+```
+
+To include required spec helpers add this code to ```rails_helper.rb```
+```ruby
+require 'twirp_rails/rspec/helper'
+
+RSpec.configure do |config|
+  config.include RSpec::Rails::RequestExampleGroup, type: :request, file_path: %r{spec/api}
+end 
+```
+
+or run ```rails g twirp:rspec``` to do it automatically.
 
 ## Development
 

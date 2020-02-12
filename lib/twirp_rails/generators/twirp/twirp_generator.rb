@@ -43,7 +43,7 @@ class TwirpGenerator < Rails::Generators::NamedBase
 
       proto_files.each do |file|
         gen_swagger = gen_swagger? && file =~ %r{/#{file_name}\.proto$}
-        pp [gen_swagger, file]
+
         cmd = protoc_cmd(file, gen_swagger: gen_swagger)
 
         `#{cmd}`
