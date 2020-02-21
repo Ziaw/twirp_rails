@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.2.0 - 2020-02-21
+
+### Breaking changes
+- `mount_twirp` now (by default) mounts to path /twirp/Service instead of /Service. If you want to use old 
+behavior add `scope: nil` argument.
+
+### Added
+- Services mounted by `mount_twirp` now correctly report errors to `Raven` (if `raven` gem used) and instrument
+calls via `ActiveSupport::Notifications`.
+
+### Changed
+- initial install rspec helper code moved to the ```twirp:rspec``` generator.
+
 ## 0.1.7 - 2020-02-11
 
 ### Changed
