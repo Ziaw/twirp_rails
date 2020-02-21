@@ -26,6 +26,10 @@ module TwirpRails
         instrumenter.finish 'instrumenter.twirp', nil
       end
 
+      service.on_success do |_env|
+        instrumenter.finish 'instrumenter.twirp', nil
+      end
+
       service.exception_raised do |e, env|
         env[:exception] = {
           class: e.class,
