@@ -26,10 +26,10 @@ module TwirpRails
 
         if scope
           scope scope do
-            mount service, at: service.full_name, scope: scope
+            mount service, at: service.full_name
           end
         else
-          mount service, at: service.full_name, scope: scope
+          mount service, at: service.full_name
         end
       end
 
