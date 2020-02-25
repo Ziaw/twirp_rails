@@ -23,11 +23,11 @@ module TwirpRails
       end
 
       service.on_error do |_twerr, _env|
-        instrumenter.finish 'instrumenter.twirp', nil
+        instrumenter.finish 'instrumenter.twirp', {}
       end
 
       service.on_success do |_env|
-        instrumenter.finish 'instrumenter.twirp', nil
+        instrumenter.finish 'instrumenter.twirp', {}
       end
 
       service.exception_raised do |e, env|
