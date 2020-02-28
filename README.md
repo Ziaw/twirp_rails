@@ -1,7 +1,12 @@
 # TwirpRails
 
-TwirpRails helps to use [twirp-ruby gem](https://github.com/twitchtv/twirp-ruby) with rails and to
-automate code generation from ```.proto``` files.
+TwirpRails helps to use [twirp-ruby gem](https://github.com/twitchtv/twirp-ruby) with rails.
+
+ * twirp code generation from ```.proto``` file
+ * handler, rspec and swagger code generation from ```.proto``` file
+ * `mount_twirp` route helper to mount handlers
+ * `rpc` helper to dry your handlers specs
+ * ability to log twirp calls by Rails logger
 
 ## Installation
 
@@ -71,8 +76,8 @@ rails s
 
 And check it from rails console.
 ```ruby
-PeopleClient.new('http://localhost:3000').get_name(GetNameRequest.new uid: '1').data.name
-=> "Name of 1"
+PeopleClient.new('http://localhost:3000/twirp').get_name(uid: 'starship').data.name
+=> "Name of starship"
 ```
 
 ### Test your service with rspec
@@ -81,8 +86,8 @@ If you use RSpec, twirp generator creates handler spec file with all service met
 
 ```ruby
 describe TeamsHandler do
-
   context '#get' do
+    let(:team) { create(:team) } 
     rpc { [:get, id: team.id] }
 
     it { should match(team: team.to_twirp) }
@@ -100,6 +105,34 @@ end
 ```
 
 or run ```rails g twirp:rspec``` to do it automatically.
+
+## Log twirp calls
+
+By default, Rails logs only start of POST request. To get a more detailed log of twirp calls, add this code to the initializer.
+
+```ruby
+# config/initializers/twirp_rails.rb
+TwirpRails.log_twirp_calls!
+```
+
+You can customize log output by pass a block argument
+
+```ruby
+# config/initializers/twirp_rails.rb
+TwirpRails.log_twirp_calls! do |event|
+  twirp_call_info = {
+    duration: event.duration,
+    method: event.payload[:env][:rpc_method],
+    params: event.payload[:env][:input].to_h
+  }
+
+  if (exception = event.payload[:env][:exception])
+    twirp_call_info[:exception] = exception
+  end
+
+  Rails.logger.info "method=%{method} duration=%{duration}" % twirp_call_info
+end
+```
 
 ## Development
 

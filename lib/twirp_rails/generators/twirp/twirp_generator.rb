@@ -106,22 +106,6 @@ class TwirpGenerator < Rails::Generators::NamedBase
     end
   end
 
-  def inject_rspec_helper
-    in_root do
-      return unless File.exist?('spec/rails_helper.rb')
-
-      require_sentinel = %r{require 'rspec/rails'\s*\n}m
-      include_sentinel = /RSpec\.configure do |config|\s*\n/m
-
-      inject_into_file 'spec/rails_helper.rb',
-                       "require 'twirp/rails/rspec/helper'",
-                       after: require_sentinel, verbose: true, force: false
-      inject_into_file 'spec/rails_helper.rb',
-                       '  config.include TwirpRails::RSpec::Helper, type: :rpc, file_path: %r{spec/rpc}',
-                       after: include_sentinel, verbose: true, force: false
-    end
-  end
-
   private
 
   def proto_type_to_ruby(result_type)

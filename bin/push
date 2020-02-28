@@ -5,6 +5,4 @@ set -v
 
 rspec
 
-gem build twirp_rails.gemspec
-
-gem push twirp_rails-$(ruby -r./lib/twirp_rails/version.rb -e "print TwirpRails::VERSION").gem
+bundle exec rake release
