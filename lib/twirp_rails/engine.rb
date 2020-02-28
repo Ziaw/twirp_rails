@@ -15,10 +15,6 @@ module TwirpRails
         TwirpRails::RavenAdapter.install
       end
 
-      initializer 'twirp_rails.logging' do
-        TwirpRails::LoggingAdapter.install
-      end
-
       initializer 'twirp_rails.require_generated_files' do
         TwirpRails::Twirp.auto_require_twirp_files
       end

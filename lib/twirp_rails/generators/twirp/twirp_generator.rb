@@ -6,7 +6,8 @@ class TwirpGenerator < Rails::Generators::NamedBase
   class_option :skip_swagger, type: :boolean, default: false
   class_option :swagger_out, type: :string, default: 'public/swagger'
 
-  GO_BIN_PATH = ENV.fetch('GOPATH') { File.expand_path('~/go/bin') }
+  GOPATH = ENV.fetch('GOPATH') { File.expand_path('~/go') }
+  GO_BIN_PATH = File.join(GOPATH, 'bin')
   TWIRP_PLUGIN_PATH = ENV.fetch('TWIRP_PLUGIN_PATH') { File.join(GO_BIN_PATH, 'protoc-gen-twirp_ruby') }
   SWAGGER_PLUGIN_PATH = ENV.fetch('SWAGGER_PLUGIN_PATH') { File.join(GO_BIN_PATH, 'protoc-gen-twirp_swagger') }
   PROTOC_PATH = `which protoc`.chomp
@@ -102,22 +103,6 @@ class TwirpGenerator < Rails::Generators::NamedBase
 
         #{methods}end
       RUBY
-    end
-  end
-
-  def inject_rspec_helper
-    in_root do
-      return unless File.exist?('spec/rails_helper.rb')
-
-      require_sentinel = %r{require 'rspec/rails'\s*\n}m
-      include_sentinel = /RSpec\.configure do |config|\s*\n/m
-
-      inject_into_file 'spec/rails_helper.rb',
-                       "require 'twirp/rails/rspec/helper'",
-                       after: require_sentinel, verbose: true, force: false
-      inject_into_file 'spec/rails_helper.rb',
-                       '  config.include TwirpRails::RSpec::Helper, type: :rpc, file_path: %r{spec/rpc}',
-                       after: include_sentinel, verbose: true, force: false
     end
   end
 
