@@ -13,10 +13,16 @@ module TwirpRails
         when String, Symbol
           service_class = Helper.constantize_first "#{name}_service", name
 
-          raise "#{name.camelize}Service or #{name.camelize} is not found" unless service_class
+          unless service_class
+            msg = "mount_twirp of #{name} error. #{name.camelize}Service or #{name.camelize} class is not found"
+
+            raise TwirpRails::Error, msg unless Rails.env.development?
+
+            warn msg
+            return
+          end
 
           handler ||= "#{name}_handler".camelize.constantize
-
         else
           raise 'twirp service name required'
         end
@@ -35,7 +41,7 @@ module TwirpRails
 
       def self.constantize_first(*variants)
         variants.each do |name|
-          clazz = name.to_s.camelize.constantize
+          clazz = name.to_s.camelize.safe_constantize
 
           return clazz if clazz
         end

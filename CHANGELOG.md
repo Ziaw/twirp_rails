@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.3.2 - 2020-03-12
+
+### Added
+- Correct code generation for proto files with packages.
+
+## 0.3.1 - 2020-03-10
+
+### Fix
+- Fix default log subscriber to use string keys to avoid SemanticLogger use :exception as parameter
+
 ## 0.3.0 - 2020-02-28
 
 ### Added

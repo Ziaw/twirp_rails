@@ -15,7 +15,7 @@ class TwirpGenerator < Rails::Generators::NamedBase
   def check_requirements
     in_root do
       unless File.exist?(proto_file_name)
-        raise "#{proto_file_name} not found #{`pwd`} #{`ls`}"
+        raise "#{proto_file_name} not found"
       end
     end
 
@@ -40,7 +40,8 @@ class TwirpGenerator < Rails::Generators::NamedBase
 
   def generate_twirp_files
     in_root do
-      proto_files = Dir.glob 'app/protos/**/*.proto'
+      protos_mask = File.join *['app/protos', class_path, '**/*.proto'].flatten
+      proto_files = Dir.glob protos_mask
 
       proto_files.each do |file|
         gen_swagger = gen_swagger? && file =~ %r{/#{file_name}\.proto$}
@@ -56,33 +57,40 @@ class TwirpGenerator < Rails::Generators::NamedBase
 
   PROTO_RPC_REGEXP = /\brpc\s+(\S+)\s*\(\s*(\S+)\s*\)\s*returns\s*\(\s*(\S+)\s*\)/m.freeze
 
+  def create_module_files
+    return if regular_class_path.empty?
+
+    class_path.length.times do |i|
+      current_path = class_path[0..i]
+      create_file File.join('app/rpc', "#{current_path.join('/')}.rb"),
+                  module_hier(current_path.map(&:camelize), 0)
+    end
+  end
+
   def generate_handler
-    methods = proto_content.scan(PROTO_RPC_REGEXP).map do |method, arg_type, result_type|
-      result_type = proto_type_to_ruby(result_type)
+    methods = proto_content.scan(PROTO_RPC_REGEXP).map do |method, _arg_type, _result_type|
       optimize_indentation <<~RUBY, 2
         def #{method.underscore}(req, _env)
-          #{result_type}.new
         end
       RUBY
     end.join("\n")
 
     # Let us assume that the service name is the same file name
-    create_file "app/rpc/#{file_name}_handler.rb", <<~RUBY
+    create_file "app/rpc/#{file_path}_handler.rb", <<~RUBY
       class #{class_name}Handler
-
       #{methods}end
     RUBY
   end
 
   def generate_route
-    route "mount_twirp :#{file_name}"
+    route "mount_twirp '#{file_path}'"
   end
 
   def generate_rspec_files
     in_root do
       return unless File.exist?('spec')
 
-      methods = proto_content.scan(PROTO_RPC_REGEXP).map do |method, arg_type, result_type|
+      methods = proto_content.scan(PROTO_RPC_REGEXP).map do |method, _arg_type, result_type|
         result_type = proto_type_to_ruby(result_type)
         optimize_indentation <<~RUBY, 2
           context '##{method.underscore}' do
@@ -96,7 +104,7 @@ class TwirpGenerator < Rails::Generators::NamedBase
         RUBY
       end.join("\n")
 
-      create_file "spec/rpc/#{file_name}_handler_spec.rb", <<~RUBY
+      create_file "spec/rpc/#{file_path}_handler_spec.rb", <<~RUBY
         require 'rails_helper'
 
         describe #{class_name}Handler do
@@ -107,6 +115,16 @@ class TwirpGenerator < Rails::Generators::NamedBase
   end
 
   private
+
+  def module_hier(modules, indent)
+    return '' if modules.size.zero?
+
+    cur, *tail = modules
+    optimize_indentation <<~RUBY, indent
+      module #{cur}
+      #{module_hier(tail, indent + 2)}end
+    RUBY
+  end
 
   def proto_type_to_ruby(result_type)
     result_type.split('.').map(&:camelize).join('::')
@@ -139,7 +157,7 @@ class TwirpGenerator < Rails::Generators::NamedBase
   end
 
   def proto_file_name
-    "app/protos/#{file_name}.proto"
+    "app/protos/#{file_path}.proto"
   end
 
   def gen_swagger?
