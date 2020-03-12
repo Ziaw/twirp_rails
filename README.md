@@ -1,5 +1,7 @@
 # TwirpRails
 
+[![Gem Version](https://badge.fury.io/rb/twirp_rails.svg)](https://badge.fury.io/rb/twirp_rails)
+
 TwirpRails helps to use [twirp-ruby gem](https://github.com/twitchtv/twirp-ruby) with rails.
 
  * twirp code generation from ```.proto``` file
