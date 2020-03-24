@@ -1,0 +1,8 @@
+Description:
+    Generate twirp_rails default initializer code.
+
+Example:
+    rails generate twirp:init
+
+    This will create:
+        config/initializers/twirp_rails.rb

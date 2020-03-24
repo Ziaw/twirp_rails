@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.4.0 - 2020-03-24
+
+### Breaking changes
+
+- Client and server proto directory splits from `app/protos` to `rpc` and `rpc/clients` (configurable)
+ 
+### Added
+
+- Added gem configuration and generator to create initial configuration file `rails g twirp:init` (comments inside).
+- Proto source dirs and rb destination dirs now configurable.
+- Added separate generator to run protoc on clients proto files `rails g twirp:clients`.
+- Add acronym API to Rails inflector to correct generate `ServiceAPI` handler from `ServiceApi` as protoc twirp plugin.
+- In the development environment gem uses warn instead of raise errors on incorrect generated code or invalid service routes.  
+
+### Fixed
+
+- Fixed incorrect indent in generated modules.
+
 ## 0.3.2 - 2020-03-12
 
 ### Added

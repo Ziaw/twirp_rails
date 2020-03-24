@@ -4,38 +4,37 @@ module TwirpRails
   module Routes # :nodoc:
     module Helper
       def mount_twirp(name, handler: nil, scope: 'twirp')
-        case name
-        when Class
-          raise 'handler param required when name is a class' unless handler&.is_a?(Class)
+        TwirpRails.handle_dev_error "mount twirp route #{name}" do
+          case name
+          when Class
+            raise 'handler param required when name is a class' unless handler&.is_a?(Class)
 
-          service_class = name
+            service_class = name
 
-        when String, Symbol
-          service_class = Helper.constantize_first "#{name}_service", name
+          when String, Symbol
+            service_class = Helper.constantize_first "#{name}_service", name
 
-          unless service_class
-            msg = "mount_twirp of #{name} error. #{name.camelize}Service or #{name.camelize} class is not found"
+            unless service_class
+              msg = "mount_twirp of #{name} error. #{name.camelize}Service or #{name.camelize} class is not found"
 
-            raise TwirpRails::Error, msg unless Rails.env.development?
+              raise TwirpRails::Error, msg
+            end
 
-            warn msg
-            return
+            handler ||= "#{name}_handler".camelize.constantize
+          else
+            raise 'twirp service name required'
           end
 
-          handler ||= "#{name}_handler".camelize.constantize
-        else
-          raise 'twirp service name required'
-        end
+          service = service_class.new(handler.new)
+          Helper.run_create_hooks service
 
-        service = service_class.new(handler.new)
-        Helper.run_create_hooks service
-
-        if scope
-          scope scope do
+          if scope
+            scope scope do
+              mount service, at: service.full_name
+            end
+          else
             mount service, at: service.full_name
           end
-        else
-          mount service, at: service.full_name
         end
       end
 

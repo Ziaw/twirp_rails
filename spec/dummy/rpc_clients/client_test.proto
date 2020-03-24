@@ -1,0 +1,10 @@
+syntax = "proto3";
+import 'shared.proto';
+
+service ClientTest {
+    rpc sample(SampleRequest) returns (shared.Status);
+}
+
+message SampleRequest {
+    string uid = 1;
+}

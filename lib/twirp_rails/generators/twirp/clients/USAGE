@@ -1,0 +1,7 @@
+Description:
+    Generate twirp code from protofiles of twirp_clients dir.
+
+Example:
+    rails generate twirp:clients
+
+    This will run protoc generation on each file in the twirp_clients dir.

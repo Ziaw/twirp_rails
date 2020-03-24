@@ -4,7 +4,7 @@ class TwirpGenerator < Rails::Generators::NamedBase
   source_root File.expand_path('templates', __dir__)
 
   class_option :skip_swagger, type: :boolean, default: false
-  class_option :swagger_out, type: :string, default: 'public/swagger'
+  class_option :swagger_out, type: :string, default: nil
 
   GOPATH = ENV.fetch('GOPATH') { File.expand_path('~/go') }
   GO_BIN_PATH = File.join(GOPATH, 'bin')
@@ -14,12 +14,12 @@ class TwirpGenerator < Rails::Generators::NamedBase
 
   def check_requirements
     in_root do
-      unless File.exist?(proto_file_name)
-        raise "#{proto_file_name} not found"
-      end
+      raise "#{proto_file_name} not found" unless File.exist?(proto_file_name)
     end
 
-    raise 'protoc not found - install protobuf (brew/apt/yum install protobuf)' unless File.exist?(PROTOC_PATH)
+    unless File.exist?(PROTOC_PATH)
+      raise 'protoc not found - install protobuf (brew/apt/yum install protobuf)'
+    end
 
     unless File.exist?(TWIRP_PLUGIN_PATH)
       raise <<~TEXT
@@ -40,11 +40,15 @@ class TwirpGenerator < Rails::Generators::NamedBase
 
   def generate_twirp_files
     in_root do
-      protos_mask = File.join *['app/protos', class_path, '**/*.proto'].flatten
+      FileUtils.mkdir_p cfg.services_twirp_code_path
+
+      protos_mask = File.join cfg.services_proto_path, '**/*.proto'
       proto_files = Dir.glob protos_mask
 
       proto_files.each do |file|
         gen_swagger = gen_swagger? && file =~ %r{/#{file_name}\.proto$}
+
+        FileUtils.mkdir_p swagger_out_path if gen_swagger
 
         cmd = protoc_cmd(file, gen_swagger: gen_swagger)
 
@@ -63,7 +67,7 @@ class TwirpGenerator < Rails::Generators::NamedBase
     class_path.length.times do |i|
       current_path = class_path[0..i]
       create_file File.join('app/rpc', "#{current_path.join('/')}.rb"),
-                  module_hier(current_path.map(&:camelize), 0)
+                  module_hier(current_path.map(&:camelize))
     end
   end
 
@@ -116,13 +120,13 @@ class TwirpGenerator < Rails::Generators::NamedBase
 
   private
 
-  def module_hier(modules, indent)
+  def module_hier(modules, indent = 0)
     return '' if modules.size.zero?
 
     cur, *tail = modules
     optimize_indentation <<~RUBY, indent
       module #{cur}
-      #{module_hier(tail, indent + 2)}end
+      #{module_hier(tail, 2)}end
     RUBY
   end
 
@@ -131,17 +135,13 @@ class TwirpGenerator < Rails::Generators::NamedBase
   end
 
   def protoc_cmd(files, gen_swagger: gen_swagger?)
-    FileUtils.mkdir_p 'lib/twirp'
-
-    flags = '--proto_path=app/protos ' \
-            '--ruby_out=lib/twirp --twirp_ruby_out=lib/twirp ' \
+    flags = "--proto_path=#{cfg.services_proto_path} " \
+            "--ruby_out=#{cfg.services_twirp_code_path} --twirp_ruby_out=#{cfg.services_twirp_code_path} " \
             "--plugin=#{TWIRP_PLUGIN_PATH}"
 
     if gen_swagger
-      FileUtils.mkdir_p options[:swagger_out]
-
       flags += " --plugin=#{SWAGGER_PLUGIN_PATH}" \
-               " --twirp_swagger_out=#{options[:swagger_out]}"
+               " --twirp_swagger_out=#{swagger_out_path}"
     end
 
     "#{PROTOC_PATH} #{flags} #{files}"
@@ -157,10 +157,18 @@ class TwirpGenerator < Rails::Generators::NamedBase
   end
 
   def proto_file_name
-    "app/protos/#{file_path}.proto"
+    File.join cfg.services_proto_path, "#{file_path}.proto"
+  end
+
+  def cfg
+    TwirpRails.configuration
   end
 
   def gen_swagger?
-    !options[:skip_swagger]
+    !options[:skip_swagger] && cfg.swagger_output_path
+  end
+
+  def swagger_out_path
+    options[:swagger_out] || cfg.swagger_output_path
   end
 end
