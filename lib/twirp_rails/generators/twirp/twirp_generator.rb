@@ -15,7 +15,6 @@ class TwirpGenerator < Rails::Generators::NamedBase
         mask = File.join src_path, "**/#{file}.proto"
         matched_files = Dir.glob(mask)
 
-        puts 2
         next if matched_files.empty?
 
         abort "many proto files matched the #{file_name}: #{matched_files.join(' ')}" if matched_files.size > 1
@@ -24,8 +23,8 @@ class TwirpGenerator < Rails::Generators::NamedBase
         matched_file = matched_file.to_s[0..-(matched_file.extname.length + 1)] # remove extension
 
         @file_path = nil # reset cache
-        puts matched_file
-        puts matched_file.camelize
+
+        say_status :detect, "Smart detect #{filename} as #{matched_file}", :yellow
         assign_names!(matched_file)
         break
       end

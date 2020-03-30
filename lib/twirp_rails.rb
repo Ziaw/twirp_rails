@@ -101,4 +101,22 @@ module TwirpRails
       yield
     end
   end
+
+  # Convert google.protobuf.Timestamp or Google::Protobuf::Timestampp hash
+  # to [Time]
+  # @param [Hash|Google::Protobuf::Timestamp] proto_timestamp
+  def self.timestamp_to_time(proto_timestamp)
+    return nil unless proto_timestamp
+
+    proto_timestamp = proto_timestamp.to_h unless proto_timestamp.is_a?(Hash)
+
+    seconds = proto_timestamp[:seconds]
+    raise "invalid timestamp #{proto_timestamp.inspect}" unless seconds
+
+    nanos = proto_timestamp[:nanos]
+
+    seconds += nanos * 1e-9 unless nanos.nil? || nanos.zero?
+
+    Time.zone.at seconds
+  end
 end

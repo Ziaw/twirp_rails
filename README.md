@@ -162,6 +162,11 @@ inflection by set to false `add_api_acronym` configuration option.
 Service generator `rails g twirp service` generates swagger file in `public/swagger` 
 by default. You can turn it off or customize path in configuration.
 
+## Smart service detection 
+
+You can use `rails g twirp svc` if your `Svc` or 
+`SvcAPI` service described at `company/service/subservice/version/etc/svc_api.proto`
+and you have no other files `svc_api.proto`.
 
 ## Development
 

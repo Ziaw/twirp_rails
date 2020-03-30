@@ -6,9 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 0.4.1 - 2020-03-30
 
+### Added
+
+- smart service detection - you can use `rails g twirp svc` if you `Svc` or 
+`SvcAPI` service described at `company/service/subservice/version/etc/svc_api.proto`
 - Add `# :nocov:` comment to generated modules to avoid decrease coverage
-- Impr
-- Ворнинг если нет папок или файлов для клиента или сервера
+- Improve generator console output and error handling
+- `add_api_acronym` configuration option
+
+### Fixed
+
+- `protoc` path was cached on start and didn't reload with spring
 
 ## 0.4.0 - 2020-03-24
 
