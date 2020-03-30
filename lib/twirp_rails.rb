@@ -2,10 +2,7 @@
 
 require 'twirp_rails/version'
 require 'twirp_rails/engine'
-require 'twirp_rails/generators/twirp/init/init_generator'
-require 'twirp_rails/generators/twirp/clients/clients_generator'
-require 'twirp_rails/generators/twirp/twirp_generator'
-require 'twirp_rails/generators/twirp/twirp_rspec_generator'
+require 'twirp_rails/generators/generators'
 require 'twirp_rails/active_record_extension'
 require 'twirp_rails/log_subscriber'
 
@@ -60,6 +57,8 @@ module TwirpRails
     config_param :swagger_output_path, 'public/swagger'
 
     config_param :log_twirp_calls, true
+
+    config_param :purge_old_twirp_code, true
   end
 
   def self.configuration

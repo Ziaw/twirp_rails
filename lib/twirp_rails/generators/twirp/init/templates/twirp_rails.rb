@@ -18,4 +18,8 @@ TwirpRails.configure do |config|
   # set to proc to customize log output
   # set to false to disable feature
   # config.log_twirp_calls = true
+  #
+  # Delete all files from x_twirp_code_path
+  # before run protoc on proto files
+  # config.purge_old_twirp_code = true
 end

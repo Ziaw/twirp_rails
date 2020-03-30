@@ -110,18 +110,14 @@ or run ```rails g twirp:rspec``` to do it automatically.
 
 ## Log twirp calls
 
-By default, Rails logs only start of POST request. To get a more detailed log of twirp calls, add this code to the initializer.
+By default, Rails logs only start of POST request. To get a more detailed log of twirp calls
+ use `config.log_twirp_calls` configuration option (default `true`).
+
+You can customize log output by pass a proc.
 
 ```ruby
 # config/initializers/twirp_rails.rb
-TwirpRails.log_twirp_calls!
-```
-
-You can customize log output by pass a block argument
-
-```ruby
-# config/initializers/twirp_rails.rb
-TwirpRails.log_twirp_calls! do |event|
+config.log_twirp_calls = -> (event) do
   twirp_call_info = {
     duration: event.duration,
     method: event.payload[:env][:rpc_method],

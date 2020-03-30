@@ -42,7 +42,9 @@ RSpec.describe TwirpGenerator, type: :generator do
   it 'generate module file' do
     assert_file 'app/rpc/pkg.rb', /module Pkg/
 
-    assert_file 'app/rpc/pkg/subpkg.rb', /module Pkg/ do |mod|
+    assert_file 'app/rpc/pkg/subpkg.rb' do |mod|
+      assert_match /# :nocov:/, mod
+      assert_match /module Pkg/ , mod
       assert_match /module Subpkg/, mod
     end
   end
