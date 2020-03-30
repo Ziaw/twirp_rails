@@ -29,7 +29,7 @@ module TwirpRails
       end
 
       initializer 'twirp_rails.add_api_acronym' do
-        if TwirpRails.configuration.add_api_acronym do
+        if TwirpRails.configuration.add_api_acronym
           ActiveSupport::Inflector.inflections(:en) do |inflect|
             inflect.acronym 'API'
           end

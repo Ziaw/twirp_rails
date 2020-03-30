@@ -24,7 +24,7 @@ class TwirpGenerator < Rails::Generators::NamedBase
 
         @file_path = nil # reset cache
 
-        say_status :detect, "Smart detect #{filename} as #{matched_file}", :yellow
+        say_status :detect, "Smart detect #{file_name} as #{matched_file}", :yellow
         assign_names!(matched_file)
         break
       end
