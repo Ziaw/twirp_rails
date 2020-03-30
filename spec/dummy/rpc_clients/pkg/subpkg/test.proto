@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package pkg.subpkg;
+
+service Test {
+    rpc Test(TestRequest) returns (TestResponse);
+}
+
+message TestRequest {}
+
+message TestResponse {}

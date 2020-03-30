@@ -4,68 +4,100 @@ class TwirpGenerator < Rails::Generators::NamedBase
   source_root File.expand_path('templates', __dir__)
 
   class_option :skip_swagger, type: :boolean, default: false
-  class_option :swagger_out, type: :string, default: 'public/swagger'
+  class_option :swagger_out, type: :string, default: nil
 
-  GOPATH = ENV.fetch('GOPATH') { File.expand_path('~/go') }
-  GO_BIN_PATH = File.join(GOPATH, 'bin')
-  TWIRP_PLUGIN_PATH = ENV.fetch('TWIRP_PLUGIN_PATH') { File.join(GO_BIN_PATH, 'protoc-gen-twirp_ruby') }
-  SWAGGER_PLUGIN_PATH = ENV.fetch('SWAGGER_PLUGIN_PATH') { File.join(GO_BIN_PATH, 'protoc-gen-twirp_swagger') }
-  PROTOC_PATH = `which protoc`.chomp
+  def smart_detect_proto_file_name
+    return if File.exist?(proto_file_name) # dont detect when file exists
+    return if class_path.any? # dont detect when file with path
+
+    in_root do
+      [file_name, "#{file_name}_api"].each do |file|
+        mask = File.join src_path, "**/#{file}.proto"
+        matched_files = Dir.glob(mask)
+
+        next if matched_files.empty?
+
+        abort "many proto files matched the #{file_name}: #{matched_files.join(' ')}" if matched_files.size > 1
+
+        matched_file = Pathname.new(matched_files.first).relative_path_from Pathname.new(src_path)
+        matched_file = matched_file.to_s[0..-(matched_file.extname.length + 1)] # remove extension
+
+        @file_path = nil # reset cache
+
+        say_status :detect, "Smart detect #{file_name} as #{matched_file}", :yellow
+        assign_names!(matched_file)
+        break
+      end
+    end
+  end
 
   def check_requirements
     in_root do
-      unless File.exist?(proto_file_name)
-        raise "#{proto_file_name} not found"
+      abort "#{proto_file_name} not found" unless File.exist?(proto_file_name)
+    end
+
+    protoc.check_requirements(check_swagger: gen_swagger?) do |msg|
+      abort msg
+    end
+  end
+
+  def rm_old_twirp_files
+    return unless cfg.purge_old_twirp_code
+
+    in_root do
+      removed_files = protoc.rm_old_twirp_files
+
+      if removed_files
+        msg = "#{removed_files.size} twirp and pb files purged from #{dst_path}"
+        say_status :protoc, msg, :green
       end
-    end
-
-    raise 'protoc not found - install protobuf (brew/apt/yum install protobuf)' unless File.exist?(PROTOC_PATH)
-
-    unless File.exist?(TWIRP_PLUGIN_PATH)
-      raise <<~TEXT
-        protoc-gen-twirp_ruby not found - install go (brew install go)
-        and run "go get github.com/twitchtv/twirp-ruby/protoc-gen-twirp_ruby
-        or set TWIRP_PLUGIN_PATH environment variable to right location.
-      TEXT
-    end
-
-    if gen_swagger? && !File.exist?(SWAGGER_PLUGIN_PATH)
-      raise <<~TEXT
-        protoc-gen-twirp_swagger not found - install go (brew install go)
-        and run "go get github.com/elliots/protoc-gen-twirp_swagger
-        or set SWAGGER_PLUGIN_PATH environment variable to right location.
-      TEXT
     end
   end
 
   def generate_twirp_files
     in_root do
-      protos_mask = File.join *['app/protos', class_path, '**/*.proto'].flatten
+      FileUtils.mkdir_p dst_path
+
+      protos_mask = File.join src_path, '**/*.proto'
       proto_files = Dir.glob protos_mask
+
+      protoc_files_count = 0
+      swagger_files_count = 0
 
       proto_files.each do |file|
         gen_swagger = gen_swagger? && file =~ %r{/#{file_name}\.proto$}
 
-        cmd = protoc_cmd(file, gen_swagger: gen_swagger)
+        FileUtils.mkdir_p swagger_out_path if gen_swagger
+
+        cmd = protoc.cmd(file, gen_swagger: gen_swagger)
+
+        protoc_files_count += 1
+        swagger_files_count += gen_swagger ? 1 : 0
 
         `#{cmd}`
 
-        raise "protoc failure: #{cmd}" unless $?.success?
+        abort "protoc failure: #{cmd}" unless $?.success?
       end
+
+      msg = "#{protoc_files_count} proto files processed, #{swagger_files_count} with swagger"
+      say_status :protoc, msg, :green
     end
   end
-
-  PROTO_RPC_REGEXP = /\brpc\s+(\S+)\s*\(\s*(\S+)\s*\)\s*returns\s*\(\s*(\S+)\s*\)/m.freeze
 
   def create_module_files
     return if regular_class_path.empty?
 
     class_path.length.times do |i|
       current_path = class_path[0..i]
-      create_file File.join('app/rpc', "#{current_path.join('/')}.rb"),
-                  module_hier(current_path.map(&:camelize), 0)
+
+      create_file File.join('app/rpc', "#{current_path.join('/')}.rb"), <<~RUBY
+        # :nocov:
+        #{module_hier(current_path.map(&:camelize))}# :nocov:
+      RUBY
     end
   end
+
+  PROTO_RPC_REGEXP = /\brpc\s+(\S+)\s*\(\s*(\S+)\s*\)\s*returns\s*\(\s*(\S+)\s*\)/m.freeze
 
   def generate_handler
     methods = proto_content.scan(PROTO_RPC_REGEXP).map do |method, _arg_type, _result_type|
@@ -116,13 +148,13 @@ class TwirpGenerator < Rails::Generators::NamedBase
 
   private
 
-  def module_hier(modules, indent)
+  def module_hier(modules, indent = 0)
     return '' if modules.size.zero?
 
     cur, *tail = modules
     optimize_indentation <<~RUBY, indent
       module #{cur}
-      #{module_hier(tail, indent + 2)}end
+      #{module_hier(tail, 2)}end
     RUBY
   end
 
@@ -130,21 +162,12 @@ class TwirpGenerator < Rails::Generators::NamedBase
     result_type.split('.').map(&:camelize).join('::')
   end
 
-  def protoc_cmd(files, gen_swagger: gen_swagger?)
-    FileUtils.mkdir_p 'lib/twirp'
+  def src_path
+    cfg.services_proto_path
+  end
 
-    flags = '--proto_path=app/protos ' \
-            '--ruby_out=lib/twirp --twirp_ruby_out=lib/twirp ' \
-            "--plugin=#{TWIRP_PLUGIN_PATH}"
-
-    if gen_swagger
-      FileUtils.mkdir_p options[:swagger_out]
-
-      flags += " --plugin=#{SWAGGER_PLUGIN_PATH}" \
-               " --twirp_swagger_out=#{options[:swagger_out]}"
-    end
-
-    "#{PROTOC_PATH} #{flags} #{files}"
+  def dst_path
+    cfg.services_twirp_code_path
   end
 
   def proto_content
@@ -157,10 +180,26 @@ class TwirpGenerator < Rails::Generators::NamedBase
   end
 
   def proto_file_name
-    "app/protos/#{file_path}.proto"
+    File.join src_path, "#{file_path}.proto"
+  end
+
+  def cfg
+    TwirpRails.configuration
   end
 
   def gen_swagger?
-    !options[:skip_swagger]
+    !options[:skip_swagger] && cfg.swagger_output_path
+  end
+
+  def swagger_out_path
+    options[:swagger_out] || cfg.swagger_output_path
+  end
+
+  def abort(msg)
+    raise Thor::InvocationError, msg
+  end
+
+  def protoc
+    @protoc ||= ProtocAdapter.new(src_path, dst_path, swagger_out_path: swagger_out_path)
   end
 end

@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package pkg.subpkg;
+
+service TestAPI {
+    rpc getName(GetNameRequest) returns (GetNameResponse);
+}
+
+message GetNameRequest {
+    string uid = 1;
+}
+
+message GetNameResponse {
+    string name = 1;
+}

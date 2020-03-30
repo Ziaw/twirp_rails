@@ -1,19 +1,17 @@
-require 'spec_helper'
+require 'rails_helper'
 require 'generator_spec'
 
 RSpec.describe TwirpGenerator, type: :generator do
-  destination File.expand_path('../tmp/dummy', __dir__)
-  arguments %w(pkg/subpkg/people)
+  destination File.expand_path('../../tmp/dummy', __dir__)
+  arguments %w[pkg/subpkg/people]
 
   before(:all) do
     prepare_destination
-    FileUtils.cp_r File.expand_path('dummy', __dir__), File.expand_path('../tmp', __dir__)
-    FileUtils.rm_r File.expand_path('../tmp/dummy/lib/twirp', __dir__), force: true
-    FileUtils.mkdir_p File.expand_path('../tmp/dummy/lib/twirp', __dir__)
+    FileUtils.cp_r File.expand_path('../dummy', __dir__), File.expand_path('../../tmp', __dir__)
     run_generator
   end
 
-  it 'creates a handler' do
+  it 'creates a handler with module' do
     assert_file 'app/rpc/pkg/subpkg/people_handler.rb', /class Pkg::Subpkg::PeopleHandler/ do |handler|
       assert_instance_method :get_name, handler
     end
@@ -42,7 +40,9 @@ RSpec.describe TwirpGenerator, type: :generator do
   it 'generate module file' do
     assert_file 'app/rpc/pkg.rb', /module Pkg/
 
-    assert_file 'app/rpc/pkg/subpkg.rb', /module Pkg/ do |mod|
+    assert_file 'app/rpc/pkg/subpkg.rb' do |mod|
+      assert_match /# :nocov:/, mod
+      assert_match /module Pkg/ , mod
       assert_match /module Subpkg/, mod
     end
   end
@@ -52,6 +52,6 @@ RSpec.describe TwirpGenerator, type: :generator do
   end
 
   it 'generates route' do
-    assert_file 'config/routes.rb', %r{mount_twirp 'pkg/subpkg/subpkg/people'}
+    assert_file 'config/routes.rb', %r{mount_twirp 'pkg/subpkg/people'}
   end
 end

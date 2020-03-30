@@ -16,7 +16,24 @@ module TwirpRails
       end
 
       initializer 'twirp_rails.require_generated_files' do
-        TwirpRails::Twirp.auto_require_twirp_files
+        TwirpRails.handle_dev_error 'Require services twirp files' do
+          path = Pathname.new(TwirpRails.configuration.services_twirp_code_path)
+          path = Rails.root.join(path) if path.relative?
+          TwirpRails::Twirp.auto_require_twirp_files(path.to_s)
+        end
+        TwirpRails.handle_dev_error 'Require clients twirp files' do
+          path = Pathname.new(TwirpRails.configuration.clients_twirp_code_path)
+          path = Rails.root.join(path) if path.relative?
+          TwirpRails::Twirp.auto_require_twirp_files(path.to_s)
+        end
+      end
+
+      initializer 'twirp_rails.add_api_acronym' do
+        if TwirpRails.configuration.add_api_acronym
+          ActiveSupport::Inflector.inflections(:en) do |inflect|
+            inflect.acronym 'API'
+          end
+        end
       end
     end
   end
