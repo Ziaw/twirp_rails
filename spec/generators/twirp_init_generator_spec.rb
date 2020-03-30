@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'rails_helper'
 require 'generator_spec'
 
 RSpec.describe Twirp::InitGenerator, type: :generator do

@@ -6,12 +6,6 @@ class TwirpGenerator < Rails::Generators::NamedBase
   class_option :skip_swagger, type: :boolean, default: false
   class_option :swagger_out, type: :string, default: nil
 
-  GOPATH = ENV.fetch('GOPATH') { File.expand_path('~/go') }
-  GO_BIN_PATH = File.join(GOPATH, 'bin')
-  TWIRP_PLUGIN_PATH = ENV.fetch('TWIRP_PLUGIN_PATH') { File.join(GO_BIN_PATH, 'protoc-gen-twirp_ruby') }
-  SWAGGER_PLUGIN_PATH = ENV.fetch('SWAGGER_PLUGIN_PATH') { File.join(GO_BIN_PATH, 'protoc-gen-twirp_swagger') }
-  PROTOC_PATH = `which protoc`.chomp
-
   def smart_detect_proto_file_name
     return if File.exist?(proto_file_name) # dont detect when file exists
     return if class_path.any? # dont detect when file with path
@@ -21,6 +15,7 @@ class TwirpGenerator < Rails::Generators::NamedBase
         mask = File.join src_path, "**/#{file}.proto"
         matched_files = Dir.glob(mask)
 
+        puts 2
         next if matched_files.empty?
 
         abort "many proto files matched the #{file_name}: #{matched_files.join(' ')}" if matched_files.size > 1
@@ -29,6 +24,8 @@ class TwirpGenerator < Rails::Generators::NamedBase
         matched_file = matched_file.to_s[0..-(matched_file.extname.length + 1)] # remove extension
 
         @file_path = nil # reset cache
+        puts matched_file
+        puts matched_file.camelize
         assign_names!(matched_file)
         break
       end
@@ -40,24 +37,8 @@ class TwirpGenerator < Rails::Generators::NamedBase
       abort "#{proto_file_name} not found" unless File.exist?(proto_file_name)
     end
 
-    unless File.exist?(PROTOC_PATH)
-      abort 'protoc not found - install protobuf (brew/apt/yum install protobuf)'
-    end
-
-    unless File.exist?(TWIRP_PLUGIN_PATH)
-      abort <<~TEXT
-        protoc-gen-twirp_ruby not found - install go (brew install go)
-        and run "go get github.com/twitchtv/twirp-ruby/protoc-gen-twirp_ruby
-        or set TWIRP_PLUGIN_PATH environment variable to right location.
-      TEXT
-    end
-
-    if gen_swagger? && !File.exist?(SWAGGER_PLUGIN_PATH)
-      abort <<~TEXT
-        protoc-gen-twirp_swagger not found - install go (brew install go)
-        and run "go get github.com/elliots/protoc-gen-twirp_swagger
-        or set SWAGGER_PLUGIN_PATH environment variable to right location.
-      TEXT
+    protoc.check_requirements(check_swagger: gen_swagger?) do |msg|
+      abort msg
     end
   end
 
@@ -65,19 +46,12 @@ class TwirpGenerator < Rails::Generators::NamedBase
     return unless cfg.purge_old_twirp_code
 
     in_root do
-      return unless File.exists? dst_path
+      removed_files = protoc.rm_old_twirp_files
 
-      remove_mask = File.join dst_path, '**/*_{twirp,pb}.rb'
-      files_to_remove = Dir.glob remove_mask
-
-      return if files_to_remove.empty?
-
-      files_to_remove.each do |file|
-        File.unlink file
+      if removed_files
+        msg = "#{removed_files.size} twirp and pb files purged from #{dst_path}"
+        say_status :protoc, msg, :green
       end
-
-      msg = "#{files_to_remove.size} twirp and pb files purged from #{dst_path}"
-      say_status :protoc, msg, :green
     end
   end
 
@@ -96,7 +70,7 @@ class TwirpGenerator < Rails::Generators::NamedBase
 
         FileUtils.mkdir_p swagger_out_path if gen_swagger
 
-        cmd = protoc_cmd(file, gen_swagger: gen_swagger)
+        cmd = protoc.cmd(file, gen_swagger: gen_swagger)
 
         protoc_files_count += 1
         swagger_files_count += gen_swagger ? 1 : 0
@@ -111,8 +85,6 @@ class TwirpGenerator < Rails::Generators::NamedBase
     end
   end
 
-  PROTO_RPC_REGEXP = /\brpc\s+(\S+)\s*\(\s*(\S+)\s*\)\s*returns\s*\(\s*(\S+)\s*\)/m.freeze
-
   def create_module_files
     return if regular_class_path.empty?
 
@@ -125,6 +97,8 @@ class TwirpGenerator < Rails::Generators::NamedBase
       RUBY
     end
   end
+
+  PROTO_RPC_REGEXP = /\brpc\s+(\S+)\s*\(\s*(\S+)\s*\)\s*returns\s*\(\s*(\S+)\s*\)/m.freeze
 
   def generate_handler
     methods = proto_content.scan(PROTO_RPC_REGEXP).map do |method, _arg_type, _result_type|
@@ -189,19 +163,6 @@ class TwirpGenerator < Rails::Generators::NamedBase
     result_type.split('.').map(&:camelize).join('::')
   end
 
-  def protoc_cmd(files, gen_swagger: gen_swagger?)
-    flags = "--proto_path=#{src_path} " \
-            "--ruby_out=#{dst_path} --twirp_ruby_out=#{dst_path} " \
-            "--plugin=#{TWIRP_PLUGIN_PATH}"
-
-    if gen_swagger
-      flags += " --plugin=#{SWAGGER_PLUGIN_PATH}" \
-               " --twirp_swagger_out=#{swagger_out_path}"
-    end
-
-    "#{PROTOC_PATH} #{flags} #{files}"
-  end
-
   def src_path
     cfg.services_proto_path
   end
@@ -237,5 +198,9 @@ class TwirpGenerator < Rails::Generators::NamedBase
 
   def abort(msg)
     raise Thor::InvocationError, msg
+  end
+
+  def protoc
+    @protoc ||= ProtocAdapter.new(src_path, dst_path, swagger_out_path: swagger_out_path)
   end
 end

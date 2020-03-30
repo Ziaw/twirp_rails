@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'rails_helper'
 require 'generator_spec'
 
 RSpec.describe Twirp::ClientsGenerator, type: :generator do
@@ -7,7 +7,6 @@ RSpec.describe Twirp::ClientsGenerator, type: :generator do
   before(:all) do
     prepare_destination
     FileUtils.cp_r File.expand_path('../dummy', __dir__), File.expand_path('../../tmp', __dir__)
-    FileUtils.rm_r File.expand_path('../../tmp/dummy/lib/twirp_clients', __dir__), force: true
     run_generator
   end
 

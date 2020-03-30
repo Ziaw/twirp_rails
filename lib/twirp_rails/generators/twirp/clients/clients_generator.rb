@@ -5,30 +5,37 @@ module Twirp
     desc 'This generator run protoc generation on each file in the twirp_clients dir'
 
     def check_requirements
-      raise 'protoc not found - install protobuf (brew/apt/yum install protobuf)' unless File.exist?(TwirpGenerator::PROTOC_PATH)
+      protoc.check_requirements do |msg|
+        abort msg
+      end
+    end
 
-      unless File.exist?(TwirpGenerator::TWIRP_PLUGIN_PATH)
-        raise <<~TEXT
-          protoc-gen-twirp_ruby not found - install go (brew install go)
-          and run "go get github.com/twitchtv/twirp-ruby/protoc-gen-twirp_ruby
-          or set TWIRP_PLUGIN_PATH environment variable to right location.
-        TEXT
+    def rm_old_twirp_files
+      return unless cfg.purge_old_twirp_code
+
+      in_root do
+        removed_files = protoc.rm_old_twirp_files
+
+        if removed_files
+          msg = "#{removed_files.size} twirp and pb files purged from #{dst_path}"
+          say_status :protoc, msg, :green
+        end
       end
     end
 
     def generate_twirp_files
       in_root do
-        FileUtils.mkdir_p cfg.clients_twirp_code_path
+        FileUtils.mkdir_p dst_path
 
-        protos_mask = File.join cfg.clients_proto_path, '**/*.proto'
+        protos_mask = File.join src_path, '**/*.proto'
         proto_files = Dir.glob protos_mask
 
         proto_files.each do |file|
-          cmd = protoc_cmd(file)
+          cmd = protoc.cmd(file)
 
           `#{cmd}`
 
-          raise "protoc failure: #{cmd}" unless $?.success?
+          abort "protoc failure: #{cmd}" unless $?.success?
         end
       end
     end
@@ -39,13 +46,20 @@ module Twirp
       TwirpRails.configuration
     end
 
-    def protoc_cmd(files)
-      flags = "--proto_path=#{cfg.clients_proto_path} " \
-            "--ruby_out=#{cfg.clients_twirp_code_path} --twirp_ruby_out=#{cfg.clients_twirp_code_path} " \
-            "--plugin=#{TwirpGenerator::TWIRP_PLUGIN_PATH}"
-
-      "#{TwirpGenerator::PROTOC_PATH} #{flags} #{files}"
+    def abort(msg)
+      raise Thor::InvocationError, msg
     end
 
+    def protoc
+      @protoc ||= ProtocAdapter.new(src_path, dst_path)
+    end
+
+    def src_path
+      cfg.clients_proto_path
+    end
+
+    def dst_path
+      cfg.clients_twirp_code_path
+    end
   end
 end

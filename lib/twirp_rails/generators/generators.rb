@@ -1,3 +1,4 @@
+require 'twirp_rails/generators/twirp/protoc_adapter'
 require 'twirp_rails/generators/twirp/init/init_generator'
 require 'twirp_rails/generators/twirp/clients/clients_generator'
 require 'twirp_rails/generators/twirp/twirp_generator'
