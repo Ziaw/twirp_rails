@@ -22,4 +22,7 @@ TwirpRails.configure do |config|
   # Delete all files from x_twirp_code_path
   # before run protoc on proto files
   # config.purge_old_twirp_code = true
+  #
+  # Add API acronym to inflector
+  # config.add_api_acronym = true
 end

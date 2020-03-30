@@ -59,6 +59,8 @@ module TwirpRails
     config_param :log_twirp_calls, true
 
     config_param :purge_old_twirp_code, true
+
+    config_param :add_api_acronym, true
   end
 
   def self.configuration
