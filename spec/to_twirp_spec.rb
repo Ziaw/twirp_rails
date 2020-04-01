@@ -43,6 +43,16 @@ RSpec.describe 'to_twirp' do
       it { expect{model.to_twirp('blah')}.to raise_error(NoMethodError) }
     end
 
+    context 'nil attributes' do
+      let!(:model) { TestClass.new.tap { |m| m.uid = nil } }
+      it { expect(model.to_twirp('uid')).to match('uid' => nil) }
+    end
+
+    context 'false attributes' do
+      let!(:model) { TestClass.new.tap { |m| m.uid = false } }
+      it { expect(model.to_twirp('uid')).to match('uid' => false) }
+    end
+
 
     context 'custom_methods' do
       it do

@@ -50,8 +50,7 @@ module TwirpRails
 
     def to_twirp_as_fields(fields)
       fields.each_with_object({}) do |field, h|
-        val = attributes[field]
-        h[field] = val || public_send(field)
+        h[field] = attributes.fetch(field) { public_send(field) }
       end
     end
   end
