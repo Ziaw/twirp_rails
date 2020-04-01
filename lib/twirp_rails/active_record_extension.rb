@@ -26,29 +26,33 @@ module TwirpRails
     # used by relation method to_twirp
     # @param [Array|Class] fields_or_class - array of converted fields or message class to
     def to_twirp(*fields_or_class)
-      fields = fields_or_class
-      result = attributes
+      if fields_or_class.empty? && self.class.twirp_message_class
+        to_twirp_as_class(self.class.twirp_message_class)
+      elsif fields_or_class.one? && fields_or_class.first.is_a?(Class)
+        to_twirp_as_class(fields_or_class.first)
+      elsif fields_or_class.any?
+        to_twirp_as_fields(fields_or_class)
+      else
+        attributes
+      end
+    end
 
-      if fields.empty? && self.class.twirp_message_class
-        fields = [self.class.twirp_message_class]
+    private
+
+    def to_twirp_as_class(klass)
+      unless klass.respond_to?(:descriptor)
+        raise "Class #{klass} must be a protobuf message class"
       end
 
-      if fields.one? && fields.first.is_a?(Class)
-        message_class = fields.first
+      # TODO performance optimization needed
+      to_twirp_as_fields(klass.descriptor.map &:name)
+    end
 
-        unless message_class.respond_to?(:descriptor)
-          raise "Class #{message_class} must me a protobuf message class"
-        end
-
-        # TODO performance optimization needed
-        fields = message_class.descriptor.map &:name
-
-        result = result.slice(*fields)
-      elsif fields.any?
-        result = result.slice(*fields)
+    def to_twirp_as_fields(fields)
+      fields.each_with_object({}) do |field, h|
+        val = attributes[field]
+        h[field] = val || public_send(field)
       end
-
-      result
     end
   end
 end

@@ -11,3 +11,10 @@ message GetNameRequest {
 message GetNameResponse {
     string name = 1;
 }
+
+message GetNameExtendedResponse {
+    string uid = 1;
+    string custom_method1 = 2;
+    string custom_method2 = 3;
+    string custom_method3 = 4;
+}
