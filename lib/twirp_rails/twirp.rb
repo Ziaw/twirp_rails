@@ -4,7 +4,7 @@ module TwirpRails
       # protoc generates require without path in a _pb files
       $LOAD_PATH.unshift(twirp_path) unless $LOAD_PATH.include?(twirp_path)
 
-      Dir.glob(Rails.root.join('lib/twirp/**/*_twirp.rb')).sort.each do |file|
+      Dir.glob(Rails.root.join(twirp_path, '**/*_twirp.rb')).sort.each do |file|
         require file
       end
     end
