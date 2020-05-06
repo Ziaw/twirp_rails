@@ -10,7 +10,7 @@ module TwirpRails
 
       # rubocop:disable Style/MethodMissingSuper
       def method_missing(method, *args)
-        handler.send method, *args
+        handler.public_send method, *args
       rescue => e
         translator_class.exception_to_twirp(e, handler)
       end
@@ -41,11 +41,11 @@ module TwirpRails
       # rubocop:disable Style/MethodMissingSuper
       def method_missing(method, *args)
         if method =~ /!$/
-          # when we call bang version of client method - raise exception translated from error
+          # when we call a bang version of client method - raise exception translated from error
           method = method[0..-2]
-          raise_on_error client.send(method, args)
+          raise_on_error client.public_send(method, args)
         else
-          client.send method, args
+          client.public_send method, args
         end
       end
       # rubocop:enable Style/MethodMissingSuper
