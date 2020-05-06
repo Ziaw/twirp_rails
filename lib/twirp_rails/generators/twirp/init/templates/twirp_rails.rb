@@ -25,4 +25,18 @@ TwirpRails.configure do |config|
   #
   # Add API acronym to inflector
   # config.add_api_acronym = true
+  #
+  # Translate exceptions to Twirp::Error on services and
+  # Twirp::Error to exceptions. To use service translation you
+  # should mount service via mount_twirp. To use client translation
+  # create client via TwirpRails.client(ClientClass, url) and
+  # call bang methods. E.g. client.hello! throws exception if returns error.
+  #
+  # class SampleTranslator < TwirpRails::ErrorHandling::Base
+  #   translate_exception Mongoid::Errors::DocumentNotFound, with: :not_found
+  #   translate_error :not_found, with: Mongoid::Errors::DocumentNotFound
+  # end
+  # config.twirp_exception_translator_class = 'SampleTranslator'
+  # default:
+  # config.twirp_exception_translator_class = nil
 end

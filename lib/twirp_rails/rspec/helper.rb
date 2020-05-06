@@ -65,7 +65,7 @@ module TwirpRails
       end
 
       included do
-        let(:handler) { described_class.new }
+        let(:handler) { TwirpRails::ErrorHandlingFactory.wrap_handler(described_class.new) }
         let(:service) { service_class.new(handler) }
       end
     end

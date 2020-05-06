@@ -25,7 +25,7 @@ module TwirpRails
             raise 'twirp service name required'
           end
 
-          service = service_class.new(handler.new)
+          service = service_class.new(ErrorHandlingFactory.wrap_handler(handler.new))
           Helper.run_create_hooks service
 
           if scope

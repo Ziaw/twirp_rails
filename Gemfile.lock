@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    twirp_rails (0.4.3)
+    twirp_rails (0.4.4)
       railties (~> 6.0)
       twirp (~> 1)
 

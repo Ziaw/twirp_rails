@@ -5,6 +5,7 @@ require 'twirp_rails/engine'
 require 'twirp_rails/generators/generators'
 require 'twirp_rails/active_record_extension'
 require 'twirp_rails/log_subscriber'
+require 'twirp_rails/error_handling/error_handling'
 
 module TwirpRails
   class Error < StandardError; end
@@ -61,6 +62,8 @@ module TwirpRails
     config_param :purge_old_twirp_code, true
 
     config_param :add_api_acronym, true
+
+    config_param :twirp_exception_translator_class, nil
   end
 
   def self.configuration
@@ -118,5 +121,11 @@ module TwirpRails
     seconds += nanos * 1e-9 unless nanos.nil? || nanos.zero?
 
     Time.zone.at seconds
+  end
+
+  def self.client(klass, url)
+    client = klass.new(url)
+
+    TwirpRails::ErrorHandling.wrap_client(client)
   end
 end
